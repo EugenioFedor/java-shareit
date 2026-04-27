@@ -11,27 +11,33 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(UserMapper::toUserDto)
+                .map(userMapper::toUserDto)
                 .toList();
     }
 
     @Override
     public UserDto getUserById(long userId) {
-        return UserMapper.toUserDto(getUserOrThrow(userId));
+        return userMapper.toUserDto(getUserOrThrow(userId));
     }
 
     @Override
     public UserDto createUser(UserDto userDto) {
         validateEmail(userDto.getEmail());
+
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new ConflictException("Email already exists");
         }
-        return UserMapper.toUserDto(userRepository.save(UserMapper.toUser(userDto)));
+
+        return userMapper.toUserDto(
+                userRepository.save(userMapper.toUser(userDto))
+        );
     }
 
     @Override
@@ -41,15 +47,18 @@ public class UserServiceImpl implements UserService {
         if (userDto.getName() != null) {
             user.setName(userDto.getName());
         }
+
         if (userDto.getEmail() != null) {
             validateEmail(userDto.getEmail());
+
             if (userRepository.existsByEmailAndIdNot(userDto.getEmail(), userId)) {
                 throw new ConflictException("Email already exists");
             }
+
             user.setEmail(userDto.getEmail());
         }
 
-        return UserMapper.toUserDto(userRepository.update(user));
+        return userMapper.toUserDto(userRepository.update(user));
     }
 
     @Override

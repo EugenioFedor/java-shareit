@@ -12,18 +12,20 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
+
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
+    private final ItemMapper itemMapper;
 
     @Override
     public ItemDto createItem(long userId, ItemDto itemDto) {
         User owner = getUserOrThrow(userId);
         validateItemForCreate(itemDto);
 
-        Item item = ItemMapper.toItem(itemDto);
+        Item item = itemMapper.toItem(itemDto);
         item.setOwner(owner);
 
-        return ItemMapper.toItemDto(itemRepository.save(item));
+        return itemMapper.toItemDto(itemRepository.save(item));
     }
 
     @Override
@@ -38,27 +40,29 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getName() != null) {
             item.setName(itemDto.getName());
         }
+
         if (itemDto.getDescription() != null) {
             item.setDescription(itemDto.getDescription());
         }
+
         if (itemDto.getAvailable() != null) {
             item.setAvailable(itemDto.getAvailable());
         }
 
-        return ItemMapper.toItemDto(itemRepository.update(item));
+        return itemMapper.toItemDto(itemRepository.update(item));
     }
 
     @Override
     public ItemDto getItemById(long userId, long itemId) {
         getUserOrThrow(userId);
-        return ItemMapper.toItemDto(getItemOrThrow(itemId));
+        return itemMapper.toItemDto(getItemOrThrow(itemId));
     }
 
     @Override
     public List<ItemDto> getOwnerItems(long userId) {
         getUserOrThrow(userId);
         return itemRepository.findAllByOwnerId(userId).stream()
-                .map(ItemMapper::toItemDto)
+                .map(itemMapper::toItemDto)
                 .toList();
     }
 
@@ -66,7 +70,7 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemDto> searchItems(long userId, String text) {
         getUserOrThrow(userId);
         return itemRepository.search(text).stream()
-                .map(ItemMapper::toItemDto)
+                .map(itemMapper::toItemDto)
                 .toList();
     }
 
