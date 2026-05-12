@@ -34,3 +34,6 @@ buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 /tomcat.8080/
+Remove-Item -Recurse -Force target
+Remove-Item -Recurse -Force db
+Remove-Item later-spring-only.iml

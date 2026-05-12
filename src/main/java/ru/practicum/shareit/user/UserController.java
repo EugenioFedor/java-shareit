@@ -9,31 +9,32 @@ import java.util.List;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
+
     private final UserService userService;
 
-    @GetMapping
-    public List<UserDto> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
-    @GetMapping("/{userId}")
-    public UserDto getUserById(@PathVariable("userId") long userId) {
-        return userService.getUserById(userId);
-    }
-
     @PostMapping
-    public UserDto createUser(@RequestBody UserDto userDto) {
+    public UserDto create(@RequestBody UserDto userDto) {
         return userService.createUser(userDto);
     }
 
-    @PatchMapping("/{userId}")
-    public UserDto updateUser(@PathVariable("userId") long userId,
-                              @RequestBody UserDto userDto) {
-        return userService.updateUser(userId, userDto);
+    @PatchMapping("/{id}")
+    public UserDto update(@PathVariable long id,
+                          @RequestBody UserDto userDto) {
+        return userService.updateUser(id, userDto);
     }
 
-    @DeleteMapping("/{userId}")
-    public void deleteUser(@PathVariable("userId") long userId) {
-        userService.deleteUser(userId);
+    @GetMapping("/{id}")
+    public UserDto get(@PathVariable long id) {
+        return userService.getUserById(id);
+    }
+
+    @GetMapping
+    public List<UserDto> getAll() {
+        return userService.getAllUsers();
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable long id) {
+        userService.deleteUser(id);
     }
 }
