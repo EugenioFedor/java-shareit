@@ -159,10 +159,9 @@ public class ItemServiceImpl implements ItemService {
         Item item = getItemOrThrow(itemId);
 
         boolean hasPastBooking = bookingRepository
-                .existsByItemIdAndBookerIdAndStatusAndEndBefore(
+                .existsByItemIdAndBookerIdAndEndBefore(
                         itemId,
                         userId,
-                        BookingStatus.APPROVED,
                         LocalDateTime.now()
                 );
 
