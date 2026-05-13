@@ -1,7 +1,6 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.Booking;
@@ -14,6 +13,7 @@ import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -91,38 +91,38 @@ public class ItemServiceImpl implements ItemService {
         getUserOrThrow(userId);
 
         List<Item> items = itemRepository.findAllByOwner_Id(userId);
+
+        if (items.isEmpty()) {
+            return List.of();
+        }
+
         List<Long> itemIds = items.stream()
                 .map(Item::getId)
                 .toList();
 
         Map<Long, List<Comment>> comments = commentRepository.findCommentsMapByItemIds(itemIds);
 
-        Map<Long, Booking> lastBookings = bookingRepository
-                .findByItemIdInAndStatusAndEndBefore(
-                        itemIds,
-                        BookingStatus.APPROVED,
-                        LocalDateTime.now(),
-                        Sort.by(Sort.Direction.DESC, "end")
-                )
-                .stream()
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Booking> bookings = bookingRepository.findByItemIdInAndStatus(
+                itemIds,
+                BookingStatus.APPROVED
+        );
+
+        Map<Long, Booking> lastBookings = bookings.stream()
+                .filter(booking -> booking.getEnd().isBefore(now))
                 .collect(Collectors.toMap(
                         booking -> booking.getItem().getId(),
                         Function.identity(),
-                        (first, second) -> first
+                        (first, second) -> first.getEnd().isAfter(second.getEnd()) ? first : second
                 ));
 
-        Map<Long, Booking> nextBookings = bookingRepository
-                .findByItemIdInAndStatusAndStartAfter(
-                        itemIds,
-                        BookingStatus.APPROVED,
-                        LocalDateTime.now(),
-                        Sort.by(Sort.Direction.ASC, "start")
-                )
-                .stream()
+        Map<Long, Booking> nextBookings = bookings.stream()
+                .filter(booking -> booking.getStart().isAfter(now))
                 .collect(Collectors.toMap(
                         booking -> booking.getItem().getId(),
                         Function.identity(),
-                        (first, second) -> first
+                        (first, second) -> first.getStart().isBefore(second.getStart()) ? first : second
                 ));
 
         return items.stream()
@@ -159,9 +159,10 @@ public class ItemServiceImpl implements ItemService {
         Item item = getItemOrThrow(itemId);
 
         boolean hasPastBooking = bookingRepository
-                .existsByItemIdAndBookerIdAndEndBefore(
+                .existsByItemIdAndBookerIdAndStatusAndEndBefore(
                         itemId,
                         userId,
+                        BookingStatus.APPROVED,
                         LocalDateTime.now()
                 );
 
@@ -173,11 +174,7 @@ public class ItemServiceImpl implements ItemService {
             throw new ValidationException("Comment text is required");
         }
 
-        Comment comment = new Comment();
-        comment.setText(commentDto.getText());
-        comment.setItem(item);
-        comment.setAuthor(author);
-        comment.setCreated(LocalDateTime.now());
+        Comment comment = itemMapper.toComment(commentDto, item, author);
 
         return itemMapper.toCommentDto(commentRepository.save(comment));
     }
@@ -185,26 +182,19 @@ public class ItemServiceImpl implements ItemService {
     private void fillBookingsForSingleItem(ItemDto dto, long itemId) {
         LocalDateTime now = LocalDateTime.now();
 
-        bookingRepository
-                .findByItemIdInAndStatusAndEndBefore(
-                        List.of(itemId),
-                        BookingStatus.APPROVED,
-                        now,
-                        Sort.by(Sort.Direction.DESC, "end")
-                )
-                .stream()
-                .findFirst()
+        List<Booking> bookings = bookingRepository.findByItemIdInAndStatus(
+                List.of(itemId),
+                BookingStatus.APPROVED
+        );
+
+        bookings.stream()
+                .filter(booking -> booking.getEnd().isBefore(now))
+                .max(Comparator.comparing(Booking::getEnd))
                 .ifPresent(booking -> dto.setLastBooking(bookingMapper.toBookingShortDto(booking)));
 
-        bookingRepository
-                .findByItemIdInAndStatusAndStartAfter(
-                        List.of(itemId),
-                        BookingStatus.APPROVED,
-                        now,
-                        Sort.by(Sort.Direction.ASC, "start")
-                )
-                .stream()
-                .findFirst()
+        bookings.stream()
+                .filter(booking -> booking.getStart().isAfter(now))
+                .min(Comparator.comparing(Booking::getStart))
                 .ifPresent(booking -> dto.setNextBooking(bookingMapper.toBookingShortDto(booking)));
     }
 

@@ -28,11 +28,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingDto createBooking(long userId, BookingDto bookingDto) {
+    public BookingDto createBooking(long userId, NewBookingDto bookingDto) {
         User booker = getUserOrThrow(userId);
         Item item = getItemOrThrow(bookingDto.getItemId());
-
-        validateDates(bookingDto.getStart(), bookingDto.getEnd());
 
         if (item.getOwner().getId().equals(userId)) {
             throw new NotFoundException("Owner cannot book own item");
@@ -42,11 +40,16 @@ public class BookingServiceImpl implements BookingService {
             throw new ValidationException("Item is not available");
         }
 
-        Booking booking = new Booking();
-        booking.setStart(bookingDto.getStart());
-        booking.setEnd(bookingDto.getEnd());
-        booking.setItem(item);
-        booking.setBooker(booker);
+        if (bookingRepository.existsOverlappingBookings(
+                item.getId(),
+                BookingStatus.APPROVED,
+                bookingDto.getStart(),
+                bookingDto.getEnd()
+        )) {
+            throw new ValidationException("Booking dates overlap with existing booking");
+        }
+
+        Booking booking = bookingMapper.toBooking(bookingDto, item, booker);
         booking.setStatus(BookingStatus.WAITING);
 
         return bookingMapper.toBookingDto(bookingRepository.save(booking));
@@ -61,7 +64,12 @@ public class BookingServiceImpl implements BookingService {
             throw new ValidationException("Only owner can approve booking");
         }
 
+        if (booking.getStatus() != BookingStatus.WAITING) {
+            throw new ValidationException("Booking has already been processed");
+        }
+
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
+
         return bookingMapper.toBookingDto(bookingRepository.save(booking));
     }
 
@@ -121,12 +129,6 @@ public class BookingServiceImpl implements BookingService {
         return bookings.stream()
                 .map(bookingMapper::toBookingDto)
                 .toList();
-    }
-
-    private void validateDates(LocalDateTime start, LocalDateTime end) {
-        if (start == null || end == null || !start.isBefore(end) || start.isBefore(LocalDateTime.now())) {
-            throw new ValidationException("Invalid booking dates");
-        }
     }
 
     private User getUserOrThrow(long userId) {

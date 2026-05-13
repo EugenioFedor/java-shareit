@@ -1,53 +1,29 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import ru.practicum.shareit.user.User;
 
-import java.util.HashSet;
-import java.util.List;
+@Mapper(componentModel = "spring")
+public interface ItemMapper {
 
-@Component
-public class ItemMapper {
+    @Mapping(target = "requestId", source = "request.id")
+    @Mapping(target = "comments", ignore = true)
+    @Mapping(target = "lastBooking", ignore = true)
+    @Mapping(target = "nextBooking", ignore = true)
+    ItemDto toItemDto(Item item);
 
-    public ItemDto toItemDto(Item item) {
-        if (item == null) {
-            return null;
-        }
+    @Mapping(target = "owner", ignore = true)
+    @Mapping(target = "request", ignore = true)
+    Item toItem(ItemDto dto);
 
-        ItemDto dto = new ItemDto();
-        dto.setId(item.getId());
-        dto.setName(item.getName());
-        dto.setDescription(item.getDescription());
-        dto.setAvailable(item.getAvailable());
-        dto.setTags(item.getTags());
-        dto.setComments(List.of());
+    @Mapping(target = "authorName", source = "author.name")
+    CommentDto toCommentDto(Comment comment);
 
-        if (item.getRequest() != null) {
-            dto.setRequestId(item.getRequest().getId());
-        }
-
-        return dto;
-    }
-
-    public Item toItem(ItemDto dto) {
-        if (dto == null) {
-            return null;
-        }
-
-        Item item = new Item();
-        item.setId(dto.getId());
-        item.setName(dto.getName());
-        item.setDescription(dto.getDescription());
-        item.setAvailable(dto.getAvailable());
-        item.setTags(dto.getTags() == null ? new HashSet<>() : dto.getTags());
-        return item;
-    }
-
-    public CommentDto toCommentDto(Comment comment) {
-        return new CommentDto(
-                comment.getId(),
-                comment.getText(),
-                comment.getAuthor().getName(),
-                comment.getCreated()
-        );
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "text", source = "dto.text")
+    @Mapping(target = "item", source = "item")
+    @Mapping(target = "author", source = "author")
+    @Mapping(target = "created", expression = "java(java.time.LocalDateTime.now())")
+    Comment toComment(CommentDto dto, Item item, User author);
 }

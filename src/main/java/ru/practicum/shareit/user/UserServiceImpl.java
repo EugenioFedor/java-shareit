@@ -14,6 +14,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
+    private final UserMapper userMapper;
     private final UserRepository userRepository;
 
     @Override
@@ -25,8 +26,8 @@ public class UserServiceImpl implements UserService {
             throw new ConflictException("Email already exists");
         }
 
-        User user = UserMapper.toUser(userDto);
-        return UserMapper.toUserDto(userRepository.save(user));
+        User user = userMapper.toUser(userDto);
+        return userMapper.toUserDto(userRepository.save(user));
     }
 
     @Override
@@ -49,12 +50,12 @@ public class UserServiceImpl implements UserService {
             user.setEmail(userDto.getEmail());
         }
 
-        return UserMapper.toUserDto(userRepository.save(user));
+        return userMapper.toUserDto(userRepository.save(user));
     }
 
     @Override
     public UserDto getUserById(long id) {
-        return UserMapper.toUserDto(userRepository.findById(id)
+        return userMapper.toUserDto(userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found")));
     }
 
@@ -62,7 +63,7 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> getAllUsers() {
         return userRepository.findAll()
                 .stream()
-                .map(UserMapper::toUserDto)
+                .map(userMapper::toUserDto)
                 .toList();
     }
 
