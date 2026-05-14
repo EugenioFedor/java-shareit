@@ -97,13 +97,11 @@ public class BookingServiceImpl implements BookingService {
 
         List<Booking> bookings = switch (state) {
             case ALL -> bookingRepository.findByBooker_Id(userId, pageRequest);
-            case CURRENT ->
-                    bookingRepository.findByBooker_IdAndStartBeforeAndEndAfter(userId, now, now, pageRequest);
+            case CURRENT -> bookingRepository.findByBooker_IdAndStartBeforeAndEndAfter(userId, now, now, pageRequest);
             case PAST -> bookingRepository.findByBooker_IdAndEndBefore(userId, now, pageRequest);
             case FUTURE -> bookingRepository.findByBooker_IdAndStartAfter(userId, now, pageRequest);
             case WAITING -> bookingRepository.findByBooker_IdAndStatus(userId, BookingStatus.WAITING, pageRequest);
-            case REJECTED ->
-                    bookingRepository.findByBooker_IdAndStatus(userId, BookingStatus.REJECTED, pageRequest);
+            case REJECTED -> bookingRepository.findByBooker_IdAndStatus(userId, BookingStatus.REJECTED, pageRequest);
         };
 
         return bookings.stream()
@@ -123,8 +121,7 @@ public class BookingServiceImpl implements BookingService {
                     bookingRepository.findByItem_Owner_IdAndStartBeforeAndEndAfter(userId, now, now, pageRequest);
             case PAST -> bookingRepository.findByItem_Owner_IdAndEndBefore(userId, now, pageRequest);
             case FUTURE -> bookingRepository.findByItem_Owner_IdAndStartAfter(userId, now, pageRequest);
-            case WAITING ->
-                    bookingRepository.findByItem_Owner_IdAndStatus(userId, BookingStatus.WAITING, pageRequest);
+            case WAITING -> bookingRepository.findByItem_Owner_IdAndStatus(userId, BookingStatus.WAITING, pageRequest);
             case REJECTED ->
                     bookingRepository.findByItem_Owner_IdAndStatus(userId, BookingStatus.REJECTED, pageRequest);
         };

@@ -25,12 +25,7 @@ class GatewayValidationTest {
         mockMvc.perform(post("/items")
                         .header("X-Sharer-User-Id", 1)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "description": "description",
-                                  "available": true
-                                }
-                                """))
+                        .content("{\"description\":\"description\",\"available\":true}"))
                 .andExpect(status().isBadRequest());
     }
 }
