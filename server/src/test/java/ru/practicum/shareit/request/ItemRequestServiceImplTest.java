@@ -1,11 +1,11 @@
 package ru.practicum.shareit.request;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.exception.NotFoundException;
 import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.Item;
@@ -20,7 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ItemRequestServiceImplTest {
@@ -33,136 +33,145 @@ class ItemRequestServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private ItemRequestMapper requestMapper;
+    private ItemRequestServiceImpl service;
 
-    @InjectMocks
-    private ItemRequestServiceImpl requestService;
+    @BeforeEach
+    void setUp() {
+        service = new ItemRequestServiceImpl(
+                requestRepository,
+                itemRepository,
+                userRepository,
+                new ItemRequestMapper()
+        );
+    }
 
     @Test
-    void createShouldSaveRequest() {
-        User requestor = new User(1L, "User", "user@mail.com", null);
-
-        ItemRequestDto requestDto = new ItemRequestDto();
-        requestDto.setDescription("Need ladder");
+    void shouldCreateRequest() {
+        User user = new User(1L, "User", "user@mail.com", null);
+        ItemRequestDto dto = new ItemRequestDto(null, "Need ladder", null, null);
 
         ItemRequest saved = new ItemRequest();
         saved.setId(10L);
         saved.setDescription("Need ladder");
-        saved.setRequestor(requestor);
+        saved.setRequestor(user);
         saved.setCreated(LocalDateTime.now());
 
-        ItemRequestDto expected = new ItemRequestDto();
-        expected.setId(10L);
-        expected.setDescription("Need ladder");
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(requestor));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(requestRepository.save(any(ItemRequest.class))).thenReturn(saved);
-        when(requestMapper.toDto(saved, List.of())).thenReturn(expected);
 
-        ItemRequestDto result = requestService.create(1L, requestDto);
+        ItemRequestDto result = service.create(1L, dto);
 
         assertThat(result.getId()).isEqualTo(10L);
-        verify(requestRepository).save(any(ItemRequest.class));
+        assertThat(result.getDescription()).isEqualTo("Need ladder");
+        assertThat(result.getItems()).isEmpty();
     }
 
     @Test
-    void createShouldThrowWhenDescriptionBlank() {
-        ItemRequestDto requestDto = new ItemRequestDto();
-        requestDto.setDescription(" ");
+    void shouldThrowWhenCreateWithBlankDescription() {
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(new User()));
+        ItemRequestDto dto = new ItemRequestDto(null, " ", null, null);
 
-        assertThatThrownBy(() -> requestService.create(1L, requestDto))
+        assertThatThrownBy(() -> service.create(1L, dto))
                 .isInstanceOf(ValidationException.class);
-
-        verify(requestRepository, never()).save(any());
     }
 
     @Test
-    void getOwnRequestsShouldReturnRequestsWithItems() {
-        User user = new User(1L, "User", "user@mail.com", null);
-
-        ItemRequest request = new ItemRequest();
-        request.setId(10L);
-        request.setRequestor(user);
-
-        Item item = new Item();
-        item.setId(20L);
-        item.setRequest(request);
-
-        ItemRequestDto dto = new ItemRequestDto();
-        dto.setId(10L);
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(requestRepository.findAllByRequestorIdOrderByCreatedDesc(1L)).thenReturn(List.of(request));
-        when(itemRepository.findAllByRequest_IdIn(List.of(10L))).thenReturn(List.of(item));
-        when(requestMapper.toDto(request, List.of(item))).thenReturn(dto);
-
-        List<ItemRequestDto> result = requestService.getOwnRequests(1L);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getId()).isEqualTo(10L);
-    }
-
-    @Test
-    void getAllRequestsShouldReturnOtherUsersRequests() {
-        User user = new User(1L, "User", "user@mail.com", null);
-
-        ItemRequest request = new ItemRequest();
-        request.setId(10L);
-
-        ItemRequestDto dto = new ItemRequestDto();
-        dto.setId(10L);
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(requestRepository.findAllByRequestorIdNot(eq(1L), any(PageRequest.class)))
-                .thenReturn(List.of(request));
-        when(itemRepository.findAllByRequest_IdIn(List.of(10L))).thenReturn(List.of());
-        when(requestMapper.toDto(request, List.of())).thenReturn(dto);
-
-        List<ItemRequestDto> result = requestService.getAllRequests(1L, 0, 10);
-
-        assertThat(result).hasSize(1);
-    }
-
-    @Test
-    void getByIdShouldReturnRequestWithItems() {
-        User user = new User(1L, "User", "user@mail.com", null);
-
-        ItemRequest request = new ItemRequest();
-        request.setId(10L);
-
-        Item item = new Item();
-        item.setId(20L);
-
-        ItemRequestDto dto = new ItemRequestDto();
-        dto.setId(10L);
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
-        when(itemRepository.findAllByRequest_Id(10L)).thenReturn(List.of(item));
-        when(requestMapper.toDto(request, List.of(item))).thenReturn(dto);
-
-        ItemRequestDto result = requestService.getById(1L, 10L);
-
-        assertThat(result.getId()).isEqualTo(10L);
-    }
-
-    @Test
-    void getByIdShouldThrowWhenRequestNotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(new User()));
-        when(requestRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> requestService.getById(1L, 99L))
-                .isInstanceOf(NotFoundException.class);
-    }
-
-    @Test
-    void shouldThrowWhenUserNotFound() {
+    void shouldThrowWhenCreateByMissingUser() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> requestService.getOwnRequests(99L))
+        ItemRequestDto dto = new ItemRequestDto(null, "Need ladder", null, null);
+
+        assertThatThrownBy(() -> service.create(99L, dto))
                 .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldGetOwnRequestsWithItems() {
+        User owner = new User(2L, "Owner", "owner@mail.com", null);
+        ItemRequest request = request(10L);
+
+        Item item = new Item();
+        item.setId(20L);
+        item.setName("Ladder");
+        item.setRequest(request);
+        item.setOwner(owner);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+        when(requestRepository.findAllByRequestorIdOrderByCreatedDesc(1L))
+                .thenReturn(List.of(request));
+        when(itemRepository.findAllByRequest_IdIn(List.of(10L)))
+                .thenReturn(List.of(item));
+
+        List<ItemRequestDto> result = service.getOwnRequests(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getItems()).hasSize(1);
+        assertThat(result.get(0).getItems().get(0).getOwnerId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldGetOwnRequestsEmpty() {
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+        when(requestRepository.findAllByRequestorIdOrderByCreatedDesc(1L))
+                .thenReturn(List.of());
+        when(itemRepository.findAllByRequest_IdIn(List.of()))
+                .thenReturn(List.of());
+
+        List<ItemRequestDto> result = service.getOwnRequests(1L);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldGetAllRequests() {
+        ItemRequest request = request(10L);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+        when(requestRepository.findAllByRequestorIdNot(org.mockito.ArgumentMatchers.eq(1L), any(Pageable.class)))
+                .thenReturn(List.of(request));
+        when(itemRepository.findAllByRequest_IdIn(List.of(10L)))
+                .thenReturn(List.of());
+
+        List<ItemRequestDto> result = service.getAllRequests(1L, 0, 10);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo(10L);
+    }
+
+    @Test
+    void shouldGetById() {
+        ItemRequest request = request(10L);
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+        when(requestRepository.findById(10L)).thenReturn(Optional.of(request));
+        when(itemRepository.findAllByRequest_Id(10L)).thenReturn(List.of());
+
+        ItemRequestDto result = service.getById(1L, 10L);
+
+        assertThat(result.getId()).isEqualTo(10L);
+    }
+
+    @Test
+    void shouldThrowWhenGetByIdMissingRequest() {
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+        when(requestRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getById(1L, 99L))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    private ItemRequest request(long id) {
+        ItemRequest request = new ItemRequest();
+        request.setId(id);
+        request.setDescription("Need ladder");
+        request.setCreated(LocalDateTime.of(2026, 5, 15, 10, 0));
+        return request;
     }
 }

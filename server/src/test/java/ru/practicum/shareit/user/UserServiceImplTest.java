@@ -1,79 +1,133 @@
 package ru.practicum.shareit.user;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.exception.NotFoundException;
+import ru.practicum.shareit.exception.ValidationException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
     private UserMapper userMapper;
 
-    @InjectMocks
     private UserServiceImpl userService;
 
-    @Test
-    void createShouldSaveUser() {
-        UserDto dto = new UserDto(null, "User", "user@mail.com");
-        User user = new User(null, "User", "user@mail.com", null);
-        User saved = new User(1L, "User", "user@mail.com", null);
-        UserDto expected = new UserDto(1L, "User", "user@mail.com");
+    @BeforeEach
+    void setUp() {
+        userMapper = Mappers.getMapper(UserMapper.class);
+        userService = new UserServiceImpl(userMapper, userRepository);
+    }
 
-        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(false);
-        when(userMapper.toUser(dto)).thenReturn(user);
-        when(userRepository.save(user)).thenReturn(saved);
-        when(userMapper.toUserDto(saved)).thenReturn(expected);
+    @Test
+    void shouldCreateUser() {
+        UserDto dto = new UserDto(null, "User", "user@mail.com");
+        User saved = new User(1L, "User", "user@mail.com", null);
+
+        when(userRepository.existsByEmail("user@mail.com")).thenReturn(false);
+        when(userRepository.save(org.mockito.ArgumentMatchers.any(User.class))).thenReturn(saved);
 
         UserDto result = userService.createUser(dto);
 
         assertThat(result.getId()).isEqualTo(1L);
-        verify(userRepository).save(user);
+        assertThat(result.getName()).isEqualTo("User");
+        assertThat(result.getEmail()).isEqualTo("user@mail.com");
     }
 
     @Test
-    void createShouldThrowWhenEmailExists() {
+    void shouldThrowWhenCreateWithInvalidEmail() {
+        UserDto dto = new UserDto(null, "User", "wrong-email");
+
+        assertThatThrownBy(() -> userService.createUser(dto))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void shouldThrowWhenCreateWithDuplicateEmail() {
         UserDto dto = new UserDto(null, "User", "user@mail.com");
 
-        when(userRepository.existsByEmail(dto.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmail("user@mail.com")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.createUser(dto))
                 .isInstanceOf(ConflictException.class);
-
-        verify(userRepository, never()).save(any());
     }
 
     @Test
-    void updateShouldPatchOnlyNotNullFields() {
+    void shouldUpdateNameAndEmail() {
         User user = new User(1L, "Old", "old@mail.com", null);
-        UserDto patch = new UserDto(null, "New", null);
-        User saved = new User(1L, "New", "old@mail.com", null);
-        UserDto expected = new UserDto(1L, "New", "old@mail.com");
+        UserDto update = new UserDto(null, "New", "new@mail.com");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(user)).thenReturn(saved);
-        when(userMapper.toUserDto(saved)).thenReturn(expected);
+        when(userRepository.existsByEmailAndIdNot("new@mail.com", 1L)).thenReturn(false);
+        when(userRepository.save(user)).thenReturn(user);
 
-        UserDto result = userService.updateUser(1L, patch);
+        UserDto result = userService.updateUser(1L, update);
 
         assertThat(result.getName()).isEqualTo("New");
-        assertThat(user.getEmail()).isEqualTo("old@mail.com");
+        assertThat(result.getEmail()).isEqualTo("new@mail.com");
     }
 
     @Test
-    void getShouldThrowWhenUserNotFound() {
+    void shouldUpdateOnlyName() {
+        User user = new User(1L, "Old", "old@mail.com", null);
+        UserDto update = new UserDto(null, "New", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserDto result = userService.updateUser(1L, update);
+
+        assertThat(result.getName()).isEqualTo("New");
+        assertThat(result.getEmail()).isEqualTo("old@mail.com");
+    }
+
+    @Test
+    void shouldThrowWhenUpdateMissingUser() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.updateUser(99L, new UserDto(null, "User", null)))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldThrowWhenUpdateDuplicateEmail() {
+        User user = new User(1L, "User", "old@mail.com", null);
+        UserDto update = new UserDto(null, null, "new@mail.com");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.existsByEmailAndIdNot("new@mail.com", 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUser(1L, update))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void shouldGetUserById() {
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
+
+        UserDto result = userService.getUserById(1L);
+
+        assertThat(result.getId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldThrowWhenGetMissingUser() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.getUserById(99L))
@@ -81,7 +135,17 @@ class UserServiceImplTest {
     }
 
     @Test
-    void deleteShouldCallRepository() {
+    void shouldGetAllUsers() {
+        when(userRepository.findAll())
+                .thenReturn(List.of(new User(1L, "User", "user@mail.com", null)));
+
+        List<UserDto> result = userService.getAllUsers();
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void shouldDeleteUser() {
         userService.deleteUser(1L);
 
         verify(userRepository).deleteById(1L);
