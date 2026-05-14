@@ -1,10 +1,16 @@
 package ru.practicum.shareit.item;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import ru.practicum.shareit.booking.BookingShortDto;
 
-@Data
+import java.util.List;
+import java.util.Set;
+
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ItemDto {
@@ -13,4 +19,8 @@ public class ItemDto {
     private String description;
     private Boolean available;
     private Long requestId;
+    private Set<String> tags;
+    private BookingShortDto lastBooking;
+    private BookingShortDto nextBooking;
+    private List<CommentDto> comments;
 }
