@@ -40,15 +40,11 @@ class BookingDtoJsonTest {
 
     @Test
     void shouldDeserializeBookingDtoWithDates() throws Exception {
-        String content = """
-                {
-                  "id": 1,
-                  "start": "2026-05-15T10:00:00",
-                  "end": "2026-05-15T11:00:00",
-                  "itemId": 2,
-                  "status": "WAITING"
-                }
-                """;
+        String content = "{\"id\":1,"
+                + "\"start\":\"2026-05-15T10:00:00\","
+                + "\"end\":\"2026-05-15T11:00:00\","
+                + "\"itemId\":2,"
+                + "\"status\":\"WAITING\"}";
 
         assertThat(json.parseObject(content).getStart()).isEqualTo(LocalDateTime.of(2026, 5, 15, 10, 0));
         assertThat(json.parseObject(content).getEnd()).isEqualTo(LocalDateTime.of(2026, 5, 15, 11, 0));

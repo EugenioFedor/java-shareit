@@ -35,14 +35,10 @@ class ItemRequestDtoJsonTest {
 
     @Test
     void shouldDeserializeRequestDtoWithCreatedDate() throws Exception {
-        String content = """
-                {
-                  "id": 1,
-                  "description": "Need ladder",
-                  "created": "2026-05-15T10:30:00",
-                  "items": []
-                }
-                """;
+        String content = "{\"id\":1,"
+                + "\"description\":\"Need ladder\","
+                + "\"created\":\"2026-05-15T10:30:00\","
+                + "\"items\":[]}";
 
         ItemRequestDto dto = json.parseObject(content);
 
