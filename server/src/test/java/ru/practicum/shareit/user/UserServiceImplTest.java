@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,14 +45,6 @@ class UserServiceImplTest {
         assertThat(result.getId()).isEqualTo(1L);
         assertThat(result.getName()).isEqualTo("User");
         assertThat(result.getEmail()).isEqualTo("user@mail.com");
-    }
-
-    @Test
-    void shouldThrowWhenCreateWithInvalidEmail() {
-        UserDto dto = new UserDto(null, "User", "wrong-email");
-
-        assertThatThrownBy(() -> userService.createUser(dto))
-                .isInstanceOf(ValidationException.class);
     }
 
     @Test

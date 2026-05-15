@@ -7,7 +7,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.user.User;
@@ -64,17 +63,6 @@ class ItemRequestServiceImplTest {
         assertThat(result.getId()).isEqualTo(10L);
         assertThat(result.getDescription()).isEqualTo("Need ladder");
         assertThat(result.getItems()).isEmpty();
-    }
-
-    @Test
-    void shouldThrowWhenCreateWithBlankDescription() {
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(new User(1L, "User", "user@mail.com", null)));
-
-        ItemRequestDto dto = new ItemRequestDto(null, " ", null, null);
-
-        assertThatThrownBy(() -> service.create(1L, dto))
-                .isInstanceOf(ValidationException.class);
     }
 
     @Test

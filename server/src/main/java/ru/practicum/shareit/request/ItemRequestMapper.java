@@ -8,22 +8,24 @@ import java.util.List;
 @Component
 public class ItemRequestMapper {
 
+    public ItemRequest toEntity(ItemRequestDto dto) {
+        ItemRequest request = new ItemRequest();
+        request.setDescription(dto.getDescription());
+        return request;
+    }
+
     public ItemRequestDto toDto(ItemRequest request, List<Item> items) {
         return new ItemRequestDto(
                 request.getId(),
                 request.getDescription(),
                 request.getCreated(),
                 items.stream()
-                        .map(this::toRequestItemDto)
+                        .map(item -> new RequestItemDto(
+                                item.getId(),
+                                item.getName(),
+                                item.getOwner().getId()
+                        ))
                         .toList()
-        );
-    }
-
-    private RequestItemDto toRequestItemDto(Item item) {
-        return new RequestItemDto(
-                item.getId(),
-                item.getName(),
-                item.getOwner().getId()
         );
     }
 }

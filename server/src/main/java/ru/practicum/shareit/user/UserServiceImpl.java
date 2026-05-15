@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 
 import java.util.List;
 
@@ -20,7 +19,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto createUser(UserDto userDto) {
-        validateEmail(userDto.getEmail());
 
         if (userRepository.existsByEmail(userDto.getEmail())) {
             throw new ConflictException("Email already exists");
@@ -41,7 +39,6 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userDto.getEmail() != null) {
-            validateEmail(userDto.getEmail());
 
             if (userRepository.existsByEmailAndIdNot(userDto.getEmail(), id)) {
                 throw new ConflictException("Email already exists");
@@ -71,11 +68,5 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(long id) {
         userRepository.deleteById(id);
-    }
-
-    private void validateEmail(String email) {
-        if (email == null || email.isBlank() || !email.contains("@")) {
-            throw new ValidationException("Invalid email");
-        }
     }
 }

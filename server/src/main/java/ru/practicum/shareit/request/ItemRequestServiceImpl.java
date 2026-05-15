@@ -6,7 +6,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.Item;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.user.User;
@@ -32,12 +31,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public ItemRequestDto create(long userId, ItemRequestDto requestDto) {
         User requestor = getUserOrThrow(userId);
 
-        if (requestDto.getDescription() == null || requestDto.getDescription().isBlank()) {
-            throw new ValidationException("Request description is required");
-        }
-
-        ItemRequest request = new ItemRequest();
-        request.setDescription(requestDto.getDescription());
+        ItemRequest request = requestMapper.toEntity(requestDto);
         request.setRequestor(requestor);
         request.setCreated(LocalDateTime.now());
 

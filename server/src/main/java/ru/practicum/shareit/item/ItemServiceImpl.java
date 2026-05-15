@@ -170,13 +170,11 @@ public class ItemServiceImpl implements ItemService {
         User author = getUserOrThrow(userId);
         Item item = getItemOrThrow(itemId);
 
-        boolean hasPastBooking = bookingRepository
-                .existsByItemIdAndBookerIdAndStatusAndEndBefore(
-                        itemId,
-                        userId,
-                        BookingStatus.APPROVED,
-                        LocalDateTime.now()
-                );
+        boolean hasPastBooking = bookingRepository.existsCompletedBooking(
+                itemId,
+                userId,
+                LocalDateTime.now()
+        );
 
         if (!hasPastBooking) {
             throw new ValidationException("User has no completed booking for this item");

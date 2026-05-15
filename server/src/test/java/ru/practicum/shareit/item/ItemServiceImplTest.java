@@ -314,10 +314,9 @@ class ItemServiceImplTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(otherUser));
         when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
-        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+        when(bookingRepository.existsCompletedBooking(
                 eq(10L),
                 eq(2L),
-                eq(BookingStatus.APPROVED),
                 any(LocalDateTime.class)
         )).thenReturn(true);
         when(commentRepository.save(any(Comment.class))).thenReturn(saved);
@@ -334,10 +333,9 @@ class ItemServiceImplTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(otherUser));
         when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
-        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+        when(bookingRepository.existsCompletedBooking(
                 eq(10L),
                 eq(2L),
-                eq(BookingStatus.APPROVED),
                 any(LocalDateTime.class)
         )).thenReturn(false);
 
@@ -352,10 +350,9 @@ class ItemServiceImplTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(otherUser));
         when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
-        when(bookingRepository.existsByItemIdAndBookerIdAndStatusAndEndBefore(
+        when(bookingRepository.existsCompletedBooking(
                 eq(10L),
                 eq(2L),
-                eq(BookingStatus.APPROVED),
                 any(LocalDateTime.class)
         )).thenReturn(true);
 

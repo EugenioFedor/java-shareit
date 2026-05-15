@@ -53,20 +53,6 @@ class BookingControllerTest {
     }
 
     @Test
-    void createShouldRejectInvalidDates() throws Exception {
-        NewBookingDto request = new NewBookingDto();
-        request.setItemId(2L);
-        request.setStart(LocalDateTime.now().plusDays(2));
-        request.setEnd(LocalDateTime.now().plusDays(1));
-
-        mockMvc.perform(post("/bookings")
-                        .header(USER_ID_HEADER, 1)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void approveShouldReturnBooking() throws Exception {
         when(bookingService.approveBooking(1L, 2L, true)).thenReturn(bookingDto(2L,
                 LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2), BookingStatus.APPROVED));
